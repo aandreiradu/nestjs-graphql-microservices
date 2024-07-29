@@ -1,7 +1,7 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
@@ -9,7 +9,7 @@ import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
-  private readonly users: User[] = [];
+  private users: User[] = [];
 
   create(createUserInput: CreateUserInput) {
     this.users.push(createUserInput);
@@ -29,7 +29,7 @@ export class UsersService {
       const userExistsIndex = this.users.findIndex((user) => user.id === id);
 
       if (userExistsIndex === -1) {
-        throw new BadRequestException('User not found');
+        throw new NotFoundException('User not found');
       }
 
       const user = this.users[userExistsIndex];
@@ -43,13 +43,31 @@ export class UsersService {
 
       return updateUserInput;
     } catch (error) {
-      if (error instanceof BadRequestException) throw BadRequestException;
+      if (error instanceof NotFoundException) throw error;
 
+      console.error(`Failed to update user with id ${id}`);
+      console.error(updateUserInput);
       throw new InternalServerErrorException('Failed to update user');
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  remove(id: string) {
+    try {
+      const userExistsIndex = this.users.findIndex((user) => user.id === id);
+
+      if (userExistsIndex === -1) {
+        throw new NotFoundException('User not found');
+      }
+
+      const filteredUsers = this.users.filter((user) => user.id !== id);
+      this.users = filteredUsers;
+
+      return true;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      console.error(`Failed to remove user with id ${id}`);
+      throw new InternalServerErrorException('Failed to remove user');
+    }
   }
 }
