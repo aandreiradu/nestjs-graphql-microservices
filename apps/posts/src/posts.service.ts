@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostInput } from './dto/create-post.input';
 import { UpdatePostInput } from './dto/update-post.input';
 import { Post } from './entities/post.entity';
@@ -20,11 +24,37 @@ export class PostsService {
     return this.posts.find((post) => post.id === id);
   }
 
-  update(id: number, updatePostInput: UpdatePostInput) {
-    return `This action updates a #${id} post`;
+  update(id: string, updatePostInput: UpdatePostInput) {
+    try {
+      const existingPostIndex = this.posts.findIndex((post) => post.id === id);
+
+      if (existingPostIndex === -1) {
+        throw new NotFoundException('Post not found');
+      }
+
+      const post = this.posts[existingPostIndex];
+      const updatedPost = {
+        ...post,
+        body: updatePostInput.body,
+      };
+
+      console.warn('updatedPost', updatedPost);
+      this.posts[existingPostIndex] = updatedPost;
+
+      return updatePostInput;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      console.error(
+        `Failed to update post with id ${id}; payload ${JSON.stringify(
+          updatePostInput,
+        )}`,
+      );
+      throw new InternalServerErrorException('Failed to update post');
+    }
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return `This action removes a #${id} post`;
   }
 
