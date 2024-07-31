@@ -9,7 +9,7 @@ import { Post } from './entities/post.entity';
 
 @Injectable()
 export class PostsService {
-  private readonly posts: Post[] = [];
+  private posts: Post[] = [];
 
   create(createPostInput: CreatePostInput) {
     this.posts.push(createPostInput);
@@ -55,7 +55,23 @@ export class PostsService {
   }
 
   remove(id: string) {
-    return `This action removes a #${id} post`;
+    try {
+      const existingPostIndex = this.posts.findIndex((post) => post.id === id);
+
+      if (existingPostIndex === -1) {
+        throw new NotFoundException('Post not found');
+      }
+
+      const filteredPosts = this.posts.filter((post) => post.id !== id);
+      this.posts = filteredPosts;
+
+      return true;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+
+      console.error(`Failed to update post with id ${id}`);
+      throw new InternalServerErrorException('Failed to update post');
+    }
   }
 
   forAuthor(userId: string) {
